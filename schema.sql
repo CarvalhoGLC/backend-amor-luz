@@ -4,5 +4,6 @@ CREATE TABLE IF NOT EXISTS messages (
   content     TEXT NOT NULL,
   author      TEXT,
   spirit      TEXT,
+  image_url   TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );

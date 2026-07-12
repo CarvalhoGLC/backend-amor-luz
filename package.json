@@ -1,20 +1,25 @@
 {
-  "name": "orvalho-frontend",
-  "private": true,
+  "name": "amor-luz-backend",
   "version": "1.0.0",
-  "type": "module",
+  "description": "Backend do mural de mensagens espíritas Amor & Luz",
+  "main": "server.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "vercel dev",
+    "start": "node server.js",
+    "hash-password": "node scripts/hash-password.js"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "vercel": "^55.0.0"
+    "@vercel/postgres": "^0.10.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.0"
+    "vercel": "^55.0.0"
   }
 }

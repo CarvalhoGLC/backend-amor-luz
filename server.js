@@ -70,6 +70,7 @@ function validateMessage(body) {
   const content = (body.content || '').trim();
   const author = (body.author || '').trim();
   const spirit = (body.spirit || '').trim();
+  const imageUrl = (body.image_url || '').trim();
 
   if (!title) errors.push('O título é obrigatório.');
   if (title.length > 120) errors.push('O título deve ter até 120 caracteres.');
@@ -77,14 +78,30 @@ function validateMessage(body) {
   if (content.length > 4000) errors.push('A mensagem deve ter até 4000 caracteres.');
   if (author.length > 60) errors.push('O nome do autor deve ter até 60 caracteres.');
   if (spirit.length > 60) errors.push('O nome do mentor espiritual deve ter até 60 caracteres.');
+  if (imageUrl.length > 1000) errors.push('A URL da imagem é muito longa.');
+  if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
+    errors.push('A URL da imagem deve começar com http:// ou https://.');
+  }
 
-  return { errors, data: { title, content, author, spirit } };
+  return { errors, data: { title, content, author, spirit, imageUrl } };
 }
 
 // Middleware auxiliar para não repetir try/catch em toda rota assíncrona.
 function asyncRoute(handler) {
   return (req, res, next) => handler(req, res, next).catch(next);
 }
+
+/* ---------------------------------------------------------
+   Rota raiz — apenas um status amigável, já que este projeto é só a API
+   (o site visual do Orvalho é hospedado separadamente)
+--------------------------------------------------------- */
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Orvalho backend',
+    endpoints: ['/api/messages', '/api/auth/login'],
+  });
+});
 
 /* ---------------------------------------------------------
    Rotas públicas
@@ -147,8 +164,8 @@ app.post(
 
     await ensureSchema();
     const { rows } = await sql`
-      INSERT INTO messages (title, content, author, spirit)
-      VALUES (${data.title}, ${data.content}, ${data.author}, ${data.spirit})
+      INSERT INTO messages (title, content, author, spirit, image_url)
+      VALUES (${data.title}, ${data.content}, ${data.author}, ${data.spirit}, ${data.imageUrl || null})
       RETURNING *
     `;
     res.status(201).json(rows[0]);
@@ -175,7 +192,8 @@ app.put(
     const { rows } = await sql`
       UPDATE messages
       SET title = ${data.title}, content = ${data.content},
-          author = ${data.author}, spirit = ${data.spirit}
+          author = ${data.author}, spirit = ${data.spirit},
+          image_url = ${data.imageUrl || null}
       WHERE id = ${id}
       RETURNING *
     `;
@@ -216,7 +234,7 @@ app.use((err, req, res, next) => {
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`Backend do Amor & Luz rodando em http://localhost:${PORT}`);
+    console.log(`Backend do Orvalho rodando em http://localhost:${PORT}`);
   });
 }
 
