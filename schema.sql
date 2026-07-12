@@ -7,3 +7,12 @@ CREATE TABLE IF NOT EXISTS messages (
   image_url   TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS videos (
+  id          SERIAL PRIMARY KEY,
+  title       TEXT NOT NULL,
+  video_id    TEXT NOT NULL,
+  youtube_url TEXT NOT NULL,
+  description TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);

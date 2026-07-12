@@ -24,6 +24,18 @@ async function ensureSchema() {
       // Adicionado depois da versão original — coluna opcional para a URL
       // da imagem exibida no topo do card da mensagem.
       await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url TEXT;`;
+
+      // Seção de vídeos do YouTube indicados pelo mantenedor.
+      await sql`
+        CREATE TABLE IF NOT EXISTS videos (
+          id          SERIAL PRIMARY KEY,
+          title       TEXT NOT NULL,
+          video_id    TEXT NOT NULL,
+          youtube_url TEXT NOT NULL,
+          description TEXT,
+          created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+      `;
     })();
   }
   await schemaReady;

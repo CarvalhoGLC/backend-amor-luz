@@ -218,6 +218,90 @@ app.delete(
   })
 );
 
+/* ---------------------------------------------------------
+   Vídeos do YouTube — mesma regra: leitura pública, escrita
+   restrita ao mantenedor.
+--------------------------------------------------------- */
+
+// Aceita os formatos mais comuns de link do YouTube e devolve só o ID de
+// 11 caracteres do vídeo, que é o que a API de embed realmente precisa.
+function extractYouTubeId(url) {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function validateVideo(body) {
+  const errors = [];
+  const title = (body.title || '').trim();
+  const youtubeUrl = (body.youtube_url || '').trim();
+  const description = (body.description || '').trim();
+
+  if (!title) errors.push('O título é obrigatório.');
+  if (title.length > 120) errors.push('O título deve ter até 120 caracteres.');
+  if (!youtubeUrl) errors.push('O link do YouTube é obrigatório.');
+  if (description.length > 500) errors.push('A descrição deve ter até 500 caracteres.');
+
+  const videoId = youtubeUrl ? extractYouTubeId(youtubeUrl) : null;
+  if (youtubeUrl && !videoId) {
+    errors.push('Não foi possível reconhecer esse link como um vídeo do YouTube.');
+  }
+
+  return { errors, data: { title, youtubeUrl, description, videoId } };
+}
+
+app.get(
+  '/api/videos',
+  asyncRoute(async (req, res) => {
+    await ensureSchema();
+    const { rows } = await sql`
+      SELECT * FROM videos ORDER BY created_at DESC
+    `;
+    res.json(rows);
+  })
+);
+
+app.post(
+  '/api/videos',
+  requireAuth,
+  asyncRoute(async (req, res) => {
+    const { errors, data } = validateVideo(req.body || {});
+    if (errors.length) {
+      return res.status(400).json({ error: errors.join(' ') });
+    }
+
+    await ensureSchema();
+    const { rows } = await sql`
+      INSERT INTO videos (title, video_id, youtube_url, description)
+      VALUES (${data.title}, ${data.videoId}, ${data.youtubeUrl}, ${data.description})
+      RETURNING *
+    `;
+    res.status(201).json(rows[0]);
+  })
+);
+
+app.delete(
+  '/api/videos/:id',
+  requireAuth,
+  asyncRoute(async (req, res) => {
+    const { id } = req.params;
+    await ensureSchema();
+
+    const existing = await sql`SELECT * FROM videos WHERE id = ${id}`;
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Vídeo não encontrado.' });
+    }
+
+    await sql`DELETE FROM videos WHERE id = ${id}`;
+    res.status(204).send();
+  })
+);
+
 // Handler de erro genérico — evita que uma exceção não tratada derrube a
 // função sem responder nada ao cliente (o que aparece como 500 sem corpo).
 app.use((err, req, res, next) => {
