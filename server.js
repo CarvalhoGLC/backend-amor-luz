@@ -227,7 +227,7 @@ app.delete(
 // 11 caracteres do vídeo, que é o que a API de embed realmente precisa.
 function extractYouTubeId(url) {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtube\.com\/live\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
