@@ -236,6 +236,33 @@ function extractYouTubeId(url) {
   return null;
 }
 
+// Extrai o ID de uma playlist a partir do parâmetro "list=" presente tanto
+// em links de playlist puros (youtube.com/playlist?list=...) quanto em
+// links de um vídeo específico dentro de uma playlist (?v=...&list=...).
+function extractPlaylistId(url) {
+  const match = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
+
+// Decide, a partir do link colado, se é um vídeo avulso ou uma playlist
+// inteira — sem precisar de um campo separado no formulário.
+function parseYouTubeLink(url) {
+  const playlistId = extractPlaylistId(url);
+  const videoId = extractYouTubeId(url);
+  const isPlaylistUrl = /youtube\.com\/playlist/.test(url);
+
+  if (isPlaylistUrl && playlistId) {
+    return { type: 'playlist', videoId: null, playlistId };
+  }
+  if (videoId) {
+    return { type: 'video', videoId, playlistId: null };
+  }
+  if (playlistId) {
+    return { type: 'playlist', videoId: null, playlistId };
+  }
+  return null;
+}
+
 function validateVideo(body) {
   const errors = [];
   const title = (body.title || '').trim();
@@ -247,12 +274,27 @@ function validateVideo(body) {
   if (!youtubeUrl) errors.push('O link do YouTube é obrigatório.');
   if (description.length > 500) errors.push('A descrição deve ter até 500 caracteres.');
 
-  const videoId = youtubeUrl ? extractYouTubeId(youtubeUrl) : null;
-  if (youtubeUrl && !videoId) {
-    errors.push('Não foi possível reconhecer esse link como um vídeo do YouTube.');
+  let parsed = null;
+  if (youtubeUrl) {
+    parsed = parseYouTubeLink(youtubeUrl);
+    if (!parsed) {
+      errors.push(
+        'Não foi possível reconhecer esse link como um vídeo ou playlist do YouTube.'
+      );
+    }
   }
 
-  return { errors, data: { title, youtubeUrl, description, videoId } };
+  return {
+    errors,
+    data: {
+      title,
+      youtubeUrl,
+      description,
+      type: parsed?.type || 'video',
+      videoId: parsed?.videoId || null,
+      playlistId: parsed?.playlistId || null,
+    },
+  };
 }
 
 app.get(
@@ -277,8 +319,8 @@ app.post(
 
     await ensureSchema();
     const { rows } = await sql`
-      INSERT INTO videos (title, video_id, youtube_url, description)
-      VALUES (${data.title}, ${data.videoId}, ${data.youtubeUrl}, ${data.description})
+      INSERT INTO videos (title, video_id, youtube_url, description, type, playlist_id)
+      VALUES (${data.title}, ${data.videoId}, ${data.youtubeUrl}, ${data.description}, ${data.type}, ${data.playlistId})
       RETURNING *
     `;
     res.status(201).json(rows[0]);

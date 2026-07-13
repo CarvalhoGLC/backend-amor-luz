@@ -36,6 +36,14 @@ async function ensureSchema() {
           created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `;
+
+      // Adicionado depois da versão original — suporte a playlists inteiras,
+      // além de vídeos avulsos. "type" diz como montar o embed: 'video' usa
+      // video_id, 'playlist' usa playlist_id. video_id deixa de ser
+      // obrigatório porque uma playlist não tem um vídeo único associado.
+      await sql`ALTER TABLE videos ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'video';`;
+      await sql`ALTER TABLE videos ADD COLUMN IF NOT EXISTS playlist_id TEXT;`;
+      await sql`ALTER TABLE videos ALTER COLUMN video_id DROP NOT NULL;`;
     })();
   }
   await schemaReady;
